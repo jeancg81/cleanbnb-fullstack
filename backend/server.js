@@ -6,8 +6,8 @@ const cors = require('cors');
 const app = express();
 
 // --- CONFIGURAÇÕES ---
-app.use(cors()); // Permite que o Frontend (site) converse com o Backend
-app.use(express.json()); // Permite ler dados enviados em formato JSON
+app.use(cors()); 
+app.use(express.json());
 
 // --- 1. CONEXÃO COM O BANCO DE DADOS ---
 mongoose.connect(process.env.MONGO_URI)
@@ -27,52 +27,45 @@ const AgendamentoSchema = new mongoose.Schema({
 
 const Agendamento = mongoose.model('Agendamento', AgendamentoSchema);
 
-// --- 3. AS ROTAS (Os comandos da API) ---
+// --- 3. AS ROTAS ---
 
-// Rota Raiz (Para teste)
 app.get('/', (req, res) => {
     res.send('🚀 Servidor CleanBnB está rodando!');
 });
 
-// [GET] Listar todos os agendamentos
 app.get('/agendamentos', async (req, res) => {
     try {
         const lista = await Agendamento.find();
         res.json(lista);
     } catch (erro) {
-        res.status(500).json({ erro: "Erro ao buscar agendamentos" });
+        res.status(500).json({ erro: "Erro ao buscar dados" });
     }
 });
 
-// [POST] Criar novo agendamento
+// [POST] Criar novo (AQUI ESTÁ A LINHA DE DEBUG)
 app.post('/agendamentos', async (req, res) => {
     try {
         const novoAgendamento = new Agendamento(req.body);
         await novoAgendamento.save();
         res.status(201).json(novoAgendamento);
     } catch (erro) {
-        res.status(500).json({ erro: "Erro ao criar agendamento" });
+        console.error("ERRO FATAL AO TENTAR SALVAR NO BANCO:", erro); // <--- DEBUG TRACER
+        res.status(500).json({ erro: "Erro ao salvar" });
     }
 });
 
-// [DELETE] Apagar um agendamento pelo ID
+// [DELETE] Apagar um agendamento
 app.delete('/agendamentos/:id', async (req, res) => {
-    const id = req.params.id;
-    console.log("📢 Recebido pedido para deletar ID:", id); // Aviso no terminal
-
     try {
-        const resultado = await Agendamento.findByIdAndDelete(id);
-
-        if (!resultado) {
-            console.log("❌ ID não encontrado no banco.");
-            return res.status(404).json({ erro: "Agendamento não encontrado." });
+        const id = req.params.id;
+        const deletado = await Agendamento.findByIdAndDelete(id);
+        
+        if (!deletado) {
+            return res.status(404).json({ erro: "Agendamento não encontrado" });
         }
-
-        console.log("✅ Deletado com sucesso!");
-        res.status(200).json({ message: "Agendamento deletado!" });
+        res.status(200).json({ message: "Deletado com sucesso!" });
     } catch (erro) {
-        console.error("❌ Erro ao tentar deletar:", erro);
-        res.status(500).json({ erro: "Erro interno do servidor." });
+        res.status(500).json({ erro: "Erro interno ao deletar" });
     }
 });
 
