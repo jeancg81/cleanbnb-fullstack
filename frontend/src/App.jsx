@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 
+// --- AQUI ESTÁ O NOVO ENDEREÇO DO SERVIDOR NA INTERNET ---
+const API_URL = 'https://cleanbnb-fullstack.onrender.com/agendamentos'; 
+// -----------------------------------------------------------
+
 function App() {
   const [formData, setFormData] = useState({
     nomeCliente: '',
@@ -17,7 +21,7 @@ function App() {
 
   const carregarAgendamentos = async () => {
     try {
-      const response = await fetch('http://localhost:5000/agendamentos');
+      const response = await fetch(API_URL);
       const dados = await response.json();
       setAgendamentos(dados);
     } catch (error) {
@@ -29,13 +33,10 @@ function App() {
     carregarAgendamentos();
   }, []);
 
-  // --- FUNÇÃO DE DELETAR ---
   const handleDelete = async (id) => {
     if (confirm("Tem certeza que deseja cancelar essa limpeza?")) {
       try {
-        console.log("Tentando apagar ID:", id);
-        
-        const response = await fetch(`http://localhost:5000/agendamentos/${id}`, {
+        const response = await fetch(`${API_URL}/${id}`, { // Usando o novo API_URL
           method: 'DELETE',
         });
 
@@ -43,15 +44,14 @@ function App() {
           alert("🗑️ Item excluído com sucesso!");
           carregarAgendamentos(); 
         } else {
-          alert("❌ O Servidor recusou. Verifique se o terminal do Backend foi reiniciado.");
+          alert("❌ O Servidor recusou. O item não foi encontrado na nuvem.");
         }
       } catch (error) {
-        alert("❌ Erro de Conexão: O Backend parece desligado.");
+        alert("❌ Erro de Conexão. Verifique se o Backend está rodando no Render.");
       }
     }
   };
 
-  // --- FUNÇÃO DE CRIAR ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -59,7 +59,7 @@ function App() {
       if (formData.tipoLimpeza === "Pesada") valorLimpeza = 250;
       if (formData.tipoLimpeza === "Expressa") valorLimpeza = 100;
 
-      const response = await fetch('http://localhost:5000/agendamentos', {
+      const response = await fetch(API_URL, { // Usando o novo API_URL
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, valor: valorLimpeza }), 
@@ -82,8 +82,7 @@ function App() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 p-4">
-      
-      {/* FORMULÁRIO */}
+      {/* ... [Resto do JSX (Visual do Formulário e Dashboard)] ... */}
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 mb-10">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-blue-600 mb-2 tracking-tight">CleanBnB</h1>
@@ -123,7 +122,6 @@ function App() {
         </form>
       </div>
 
-      {/* DASHBOARD + LISTA */}
       <div className="w-full max-w-md pb-20">
         
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 mb-6 text-white shadow-lg transform hover:scale-105 transition duration-300">
