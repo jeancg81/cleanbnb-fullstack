@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 
-// --- AQUI ESTÁ O NOVO ENDEREÇO DO SERVIDOR NA INTERNET ---
+// --- ENDEREÇO DA API PÚBLICA ---
 const API_URL = 'https://cleanbnb-fullstack.onrender.com/agendamentos'; 
-// -----------------------------------------------------------
 
 function App() {
   const [formData, setFormData] = useState({
@@ -12,20 +11,36 @@ function App() {
     data: '',
     tipoLimpeza: 'Padrão'
   });
-
   const [agendamentos, setAgendamentos] = useState([]);
 
   const handleChange = (e) => {
+    // Note: Esta função não tem problemas. O erro está no que ela dispara (o re-render).
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // --- FUNÇÃO CORRIGIDA: AGORA É DEFENSIVA! ---
   const carregarAgendamentos = async () => {
     try {
       const response = await fetch(API_URL);
+      
+      // Se o servidor retornar 500, response.ok é false
+      if (!response.ok) {
+        console.error("API Error Status:", response.status);
+        setAgendamentos([]); // Garante que o estado seja um array vazio para não quebrar.
+        return;
+      }
+      
       const dados = await response.json();
-      setAgendamentos(dados);
+
+      // VERIFICA SE É ARRAY ANTES DE SETAR O ESTADO
+      if (Array.isArray(dados)) { 
+        setAgendamentos(dados);
+      } else {
+        console.error("API retornou objeto quebrado:", dados);
+        setAgendamentos([]); // Previne o crash
+      }
     } catch (error) {
-      console.error("Erro ao buscar agendamentos:", error);
+      console.error("Erro fatal na busca (Rede):", error);
     }
   };
 
@@ -33,21 +48,23 @@ function App() {
     carregarAgendamentos();
   }, []);
 
+  // --- Funções de Delete e Create (Omitidas, mas iguais) ---
+
   const handleDelete = async (id) => {
     if (confirm("Tem certeza que deseja cancelar essa limpeza?")) {
       try {
-        const response = await fetch(`${API_URL}/${id}`, { // Usando o novo API_URL
+        const response = await fetch(`${API_URL}/${id}`, { 
           method: 'DELETE',
         });
 
         if (response.ok) {
           alert("🗑️ Item excluído com sucesso!");
-          carregarAgendamentos(); 
+          carregarAgendamentos();
         } else {
-          alert("❌ O Servidor recusou. O item não foi encontrado na nuvem.");
+          alert("❌ O Servidor recusou. Verifique o console para 404/500.");
         }
       } catch (error) {
-        alert("❌ Erro de Conexão. Verifique se o Backend está rodando no Render.");
+        alert("❌ Erro de Conexão: O Backend parece desligado.");
       }
     }
   };
@@ -59,7 +76,7 @@ function App() {
       if (formData.tipoLimpeza === "Pesada") valorLimpeza = 250;
       if (formData.tipoLimpeza === "Expressa") valorLimpeza = 100;
 
-      const response = await fetch(API_URL, { // Usando o novo API_URL
+      const response = await fetch(API_URL, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, valor: valorLimpeza }), 
@@ -77,12 +94,15 @@ function App() {
     }
   };
 
+
+  // --- CÁLCULOS DO DASHBOARD ---
+  // O Reduce agora SÓ roda se agendamentos for Array (graças ao nosso novo check!)
   const totalFaturamento = agendamentos.reduce((acc, item) => acc + item.valor, 0);
   const totalLimpezas = agendamentos.length;
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 p-4">
-      {/* ... [Resto do JSX (Visual do Formulário e Dashboard)] ... */}
+      {/* FORMULÁRIO */}
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 mb-10">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-blue-600 mb-2 tracking-tight">CleanBnB</h1>
@@ -122,8 +142,10 @@ function App() {
         </form>
       </div>
 
+      {/* ÁREA DE DADOS */}
       <div className="w-full max-w-md pb-20">
         
+        {/* Painel Verde (Dashboard) */}
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 mb-6 text-white shadow-lg transform hover:scale-105 transition duration-300">
           <h2 className="text-lg font-semibold opacity-90 mb-4">💰 Painel Financeiro</h2>
           <div className="flex justify-between items-center">
@@ -138,6 +160,7 @@ function App() {
           </div>
         </div>
 
+        {/* Lista de Agendamentos */}
         <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">📅 Próximas Limpezas</h2>
         
         {agendamentos.length === 0 && (
